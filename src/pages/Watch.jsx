@@ -1,90 +1,55 @@
-import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import React, { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 
 const Watch = () => {
   const { animeName } = useParams();
   const [anime, setAnime] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const fetchAnime = async () => {
-      if (!animeName) {
-        setError("No anime name provided");
-        setLoading(false);
-        return;
-      }
-
       try {
-        // Encode slug for safe API call (minor fix for slugs with spaces/special chars)
-        const encodedName = encodeURIComponent(animeName);
-        const response = await fetch(`https://api.consumet.org/anime/gogoanime/info/${encodedName}`);
-        
-        if (!response.ok) {
-          throw new Error(`API error: ${response.status}`);
-        }
-        
-        const data = await response.json();
+        const res = await fetch(`https://api.consumet.org/anime/gogoanime/info/${animeName}`);
+        if (!res.ok) throw new Error('Anime not found');
+        const data = await res.json();
         setAnime(data);
       } catch (err) {
-        console.error("Fetch error:", err);
         setError(err.message);
       } finally {
         setLoading(false);
       }
     };
-
     fetchAnime();
   }, [animeName]);
 
-  if (loading) {
-    return <div className="flex justify-center items-center h-64">Loading anime details...</div>;
-  }
-
-  if (error || !anime) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <p>Error: {error || "Failed to load anime"}. Try refreshing or check console.</p>
-      </div>
-    );
-  }
+  if (loading) return <div className="text-center py-20 text-white text-2xl">Loading anime...</div>;
+  if (error) return <div className="text-center py-20 text-red-500 text-xl">{error}</div>;
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">{anime.title}</h1>
-        <img 
-          src={anime.image} 
-          alt={anime.title} 
-          className="w-48 h-64 object-cover rounded mb-4"
-        />
-        <p className="text-gray-700">{anime.description || "No synopsis available."}</p>
+    <div className="container mx-auto px-4 py-8 bg-gray-900 text-white">
+      <div className="flex flex-col md:flex-row gap-8 mb-10">
+        <img src={anime.image} alt={anime.title} className="w-64 rounded-lg shadow-xl" />
+        <div>
+          <h1 className="text-4xl font-bold mb-4">{anime.title}</h1>
+          <p className="text-gray-300 mb-6">{anime.description || 'No description available.'}</p>
+          <div className="flex gap-4 text-sm">
+            <span>Status: {anime.status}</span>
+            <span>Type: {anime.type}</span>
+            <span>Episodes: {anime.totalEpisodes}</span>
+          </div>
+        </div>
       </div>
-
-      <div>
-        <h2 className="text-2xl font-semibold mb-4">Episodes</h2>
-        {anime.episodes && anime.episodes.length > 0 ? (
-          <ul className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {anime.episodes.map((episode) => (
-              <li key={episode.id} className="bg-gray-100 p-4 rounded cursor-pointer hover:bg-gray-200">
-                <a 
-                  href="#" 
-                  onClick={(e) => {
-                    e.preventDefault();
-                    // TODO: Load player here (e.g., set current episode state and fetch servers)
-                    console.log("Play episode:", episode.number);
-                    // Example: window.open(`/player/${episode.id}`, '_blank'); or embed iframe
-                  }}
-                  className="text-blue-600 hover:underline"
-                >
-                  Episode {episode.number}
-                </a>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p>No episodes available.</p>
-        )}
+      <h2 className="text-3xl font-bold mb-6">Episodes</h2>
+      <div className="grid grid-cols-5 md:grid-cols-10 lg:grid-cols-12 gap-3">
+        {anime.episodes?.map((ep) => (
+          <div 
+            key={ep.number} 
+            className="bg-gray-800 hover:bg-blue-600 text-center py-3 rounded cursor-pointer transition-colors"
+          >
+            {ep.number}
+          </div>
+        )) || <p>No episodes available.</p>}
       </div>
     </div>
   );
